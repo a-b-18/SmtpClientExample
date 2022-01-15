@@ -1,64 +1,30 @@
-﻿
-namespace Sample_Cs
-{
-    public class Person
-    {
-        public readonly bool HasErrors = false;
-        public readonly List<ErrorLog> Errors = new List<ErrorLog>();
+﻿using MimeKit;
+using MailKit;
+using MailKit.Security;
+using MailKit.Net.Smtp;
 
-        public Person(string name, int age)
-        {
-            CheckName(name);
-            CheckAge(age);
-            
-            if (Errors.Count > 0) { HasErrors = true; }
-        }
+namespace SmtpClientExample {
+	public static class Program
+	{
+		public static void Main ()
+		{
+			var message = new MimeMessage();
+			const string sender = "from@gmail.com";
+			
+			message.From.Add(InternetAddress.Parse(sender));
+			message.To.Add(InternetAddress.Parse("to@gmail.com"));
+			message.Subject = "Test Email";
+			message.Body = new TextPart("plain") {Text = "This is what a body looks like."};
+			
+			using (var client = new SmtpClient (new ProtocolLogger ("smtp.log"))) {
+				client.Connect ("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
 
-        private void CheckName(string name)
-        {
-            if (name != "Tony") return;
-            
-            Errors.Add(new ErrorLog {ErrorMessage = $"hah, {name} is a gay name.", IsCritical = false});
-        }
+				client.Authenticate (sender, "password");
 
-        private void CheckAge(int age)
-        {
-            if (age <= 30) return;
-            
-            Errors.Add(new ErrorLog {ErrorMessage = $"{age} is way too old.", IsCritical = true});
-        }
-        
-    }
+				client.Send (message);
 
-    public class ErrorLog
-    {
-        public string ErrorMessage;
-        public bool IsCritical;
-    }
-
-    public static class Program
-    {
-        public static void Main()
-        {
-
-            var person = new Person("Alex", 31);
-
-            if (person.HasErrors)
-            {
-                foreach (var errorLog in person.Errors)
-                {
-                    switch (errorLog.IsCritical)
-                    {
-                        case true:
-                            Console.WriteLine("CRITICAL error: " + errorLog.ErrorMessage);
-                            break;
-                        case false:
-                            Console.WriteLine("Non-critical error: " + errorLog.ErrorMessage);
-                            break;
-                    }
-                }
-            }
-
-        }
-    }
+				client.Disconnect (true);
+			}
+		}
+	}
 }
